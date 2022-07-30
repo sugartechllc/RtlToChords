@@ -28,6 +28,19 @@ def handleRtlData(config: dict, data: dict):
         logging.error("No model defined in RTL data.")
         return
 
+    # Get timestamp
+    timestamp = time.time()
+    if "time" in data:
+        try:
+            dt = datetime.datetime.fromisoformat(data["time"])
+            timestamp = dt.timestamp()
+        except Exception as e:
+            logging.error(
+                f'Failed to parse timestamp {data["time"]}, using current time')
+    else:
+        logging.warning("No timestamp in data, using current time")
+    logging.info(f"Timestamp is: {timestamp}")
+
     # Check each sensor and handle all variables that apply to this data
     for sensor in sensors:
         if "model" not in sensor:
