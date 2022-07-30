@@ -1,3 +1,4 @@
+import datetime
 import logging
 import argparse
 import time
@@ -5,6 +6,27 @@ import pychords.tochords as tochords
 import json
 import subprocess
 import sys
+
+
+def sendToChords(config: dict, short_name: str, timestamp: int, value: float):
+    """
+    Send a single value to chords.
+    config: Config settings dictionary.
+    short_name: The chords short variable name of the value to send.
+    timestamp: The unix timestamp of the data in seconds.
+    value: The data value to send.
+    """
+    chords_record = {}
+    chords_record["inst_id"] = config["instrument_id"]
+    chords_record["api_email"] = config["api_email"]
+    chords_record["api_key"] = config["api_key"]
+    chords_record["vars"] = {}
+    chords_record["vars"]["at"] = int(timestamp)
+    chords_record["vars"][short_name] = value
+    uri = tochords.buildURI(config["chords_host"], chords_record)
+    logging.info(f"Submitting: {uri}")
+    max_queue_length = 10*60*24
+    tochords.submitURI(uri, max_queue_length)
 
 
 def handleRtlData(config: dict, data: dict):
@@ -64,6 +86,11 @@ def handleRtlData(config: dict, data: dict):
 
         # Handle each variable
         for variable in sensor["variables"]:
+            if "chords_short_name" not in variable:
+                logging.warning(
+                    f"No chords_short_name defined for variable {variable}")
+                continue
+            chords_short_name = variable["chords_short_name"]
             if "rtl_name" not in variable:
                 logging.warning(f"No rtl_name defined for variable {variable}")
                 continue
@@ -75,7 +102,7 @@ def handleRtlData(config: dict, data: dict):
             value = data[rtl_name]
             logging.info(
                 f"Found matching data for {rtl_name} with value {value}")
-            logging.info("Sending to chords!!!!!!!!")  # TODO.....
+            sendToChords(config, chords_short_name, timestamp, value)
 
 
 def forwardRtlData(config: dict):
