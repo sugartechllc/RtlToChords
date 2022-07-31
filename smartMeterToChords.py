@@ -1,10 +1,11 @@
-import datetime
-import logging
-import argparse
-import time
-import pychords.tochords as tochords
-import json
 import subprocess
+import json
+import pychords.tochords as tochords
+import time
+import argparse
+import logging
+import io
+import datetime
 import sys
 
 
@@ -105,21 +106,13 @@ def handleRtlData(config: dict, data: dict):
             sendToChords(config, chords_short_name, timestamp, value)
 
 
-def forwardRtlData(config: dict):
+def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     """
-    Forward any received RTL data to chords.
-    Blocks indefinitely.
-    config: Config setting dictionary.
+    Forward data from a generic text stream.
+    config: Config settings dictionary.
+    io_stream: The io stream to read json lines from an forward data from.
     """
-
-    # Open RTL subprocess that prints any received data to stdout as json
-    rtl_process = subprocess.Popen(["/usr/local/bin/rtl_433",
-                                    "-f", "915000000",
-                                    "-F", "json"],
-                                   stdout=subprocess.PIPE)
-
-    # Read all lines from RTL
-    for line in rtl_process.stdout:
+    for line in io_stream:
         logging.info(f"RTL line is: {line}")
         try:
             data = json.loads(line)
@@ -129,12 +122,31 @@ def forwardRtlData(config: dict):
             logging.error(f"Failed to parse RTL line: {e}")
 
 
+def forwardRtlData(config: dict):
+    """
+    Run rtl_433 command and forward any received RTL data to chords.
+    Blocks indefinitely.
+    config: Config settings dictionary.
+    """
+
+    # Open RTL subprocess that prints any received data to stdout as json
+    rtl_process = subprocess.Popen(["/usr/local/bin/rtl_433",
+                                    "-f", "915000000",
+                                    "-F", "json"],
+                                   stdout=subprocess.PIPE)
+
+    # Read all lines from RTL
+    forwardFromStream(config, rtl_process.stdout)
+
+
 def main():
 
     # Parse arguments
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c", "--config", help="Path to json configuration file to use.", required=True)
+    parser.add_argument(
+        "-f", "--file", help="Read from specified file instead of running rtl_433 indefinitely", required=False, type=str)
     parser.add_argument(
         "--debug", help="Enable debug logging",
         action="store_true")
@@ -155,14 +167,27 @@ def main():
     # Startup chords sender
     tochords.startSender()
 
-    # Forward RTL data indefinitely
+    if args.file is None:
+        # Forward RTL data indefinitely
+        while True:
+            try:
+                forwardRtlData(config)
+            except Exception as e:
+                logging.error("Something went wrong when forwarding RTL data.")
+                logging.exception(e)
+                time.sleep(1)
+    else:
+        # Read from file
+        with open(args.file, "r") as f:
+            forwardFromStream(config, f)
+
+    # Wait for all data to be sent
     while True:
-        try:
-            forwardRtlData(config)
-        except Exception as e:
-            logging.error("Something went wrong when forwarding RTL data.")
-            logging.exception(e)
-            time.sleep(1)
+        num_remaining = tochords.waiting()
+        logging.info(f"Queue length: {num_remaining}")
+        time.sleep(1)
+        if num_remaining == 0:
+            break
 
 
 if __name__ == '__main__':
