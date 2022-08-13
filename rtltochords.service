@@ -1,0 +1,16 @@
+[Unit]
+Description=RTL to CHORDS Service
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+User=pi
+Restart=always
+RestartSec=5
+RuntimeMaxSec=3600s
+Type=simple
+WorkingDirectory=/home/pi/RtlToChords
+ExecStart=/usr/bin/python3 /home/pi/RtlToChords/rtlToChords.py -c /home/pi/RtlToChords/config.json --debug
+
+[Install]
+WantedBy=multi-user.target

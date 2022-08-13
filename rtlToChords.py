@@ -161,7 +161,7 @@ def main():
     logging.debug("Debug logging enabled")
 
     # Load configuration
-    logging.info(f"Starting SmartMeter to Chords with {args.config}")
+    logging.info(f"Starting RTL to Chords with {args.config}")
     config = json.loads(open(args.config).read())
 
     # Startup chords sender
