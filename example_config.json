@@ -5,16 +5,6 @@
     "instrument_id": "12345",
     "smart_sensors": [
         {
-            "model": "IDM",
-            "id": 12345,
-            "variables": [
-                {
-                    "rtl_name": "consumption_data",
-                    "chords_short_name": "gas_consumption"
-                }
-            ]
-        },
-        {
             "model": "ERT-SCM",
             "id": 12345,
             "variables": [
