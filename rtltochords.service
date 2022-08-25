@@ -11,6 +11,8 @@ RuntimeMaxSec=3600s
 Type=simple
 WorkingDirectory=/home/pi/RtlToChords
 ExecStart=/usr/bin/python3 /home/pi/RtlToChords/rtlToChords.py -c /home/pi/RtlToChords/config.json --debug
+TimeoutStopFailureMode=kill
+TimeoutStopSec=30s
 
 [Install]
 WantedBy=multi-user.target
