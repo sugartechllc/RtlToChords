@@ -52,10 +52,10 @@ def handleRtlData(config: dict, data: dict):
 
     # Check if model and id exists in data
     if "model" not in data:
-        logging.error("No model defined in RTL data.")
+        logging.debug("No model defined in RTL data.")
         return
     if "id" not in data:
-        logging.error("No id defined in RTL data.")
+        logging.debug("No id defined in RTL data.")
         return
 
     # Get timestamp
