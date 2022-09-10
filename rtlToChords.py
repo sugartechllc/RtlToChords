@@ -12,13 +12,12 @@ import sys
 # messages, a common situation with these sensors (especially the Ambient Wx ones).
 previous_rtl_data = {}
 
-def sendToChords(config: dict, short_name: str, timestamp: int, value: float, chords_inst_override=None):
+def sendToChords(config: dict, timestamp: int, vars: {}, chords_inst_override=None):
     """
     Send a single value to chords.
     config: Config settings dictionary.
-    short_name: The chords short variable name of the value to send.
     timestamp: The unix timestamp of the data in seconds.
-    value: The data value to send.
+    vars: a dictionary of chords_short_names:values
     """
     chords_record = {}
     chords_record["inst_id"] = config["instrument_id"]
@@ -28,7 +27,7 @@ def sendToChords(config: dict, short_name: str, timestamp: int, value: float, ch
     chords_record["api_key"] = config["api_key"]
     chords_record["vars"] = {}
     chords_record["vars"]["at"] = int(timestamp)
-    chords_record["vars"][short_name] = value
+    chords_record["vars"].update(vars)
     uri = tochords.buildURI(config["chords_host"], chords_record)
     logging.info(f"Submitting: {uri}")
     max_queue_length = 10*60*24
@@ -95,6 +94,7 @@ def handleRtlData(config: dict, data: dict):
             continue
 
         # Handle each variable
+        vars = {}
         for variable in sensor["variables"]:
             if "chords_short_name" not in variable:
                 logging.warning(
@@ -110,11 +110,14 @@ def handleRtlData(config: dict, data: dict):
                 continue
             rtl_name = variable["rtl_name"]
             value = data[rtl_name]
+            vars[chords_short_name] = data[rtl_name]
             logging.info(
                 f"Found matching data for {rtl_name} with value {value}")
             # if an override has been specified for the instrument id, use it.
             chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
-            sendToChords(config, chords_short_name, timestamp, value, chords_inst_override)
+        if len(vars):
+            sendToChords(config, timestamp, vars, chords_inst_override)
+
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     """
