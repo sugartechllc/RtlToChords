@@ -9,7 +9,7 @@ import datetime
 import sys
 
 
-def sendToChords(config: dict, short_name: str, timestamp: int, value: float):
+def sendToChords(config: dict, short_name: str, timestamp: int, value: float, chords_inst_override=None):
     """
     Send a single value to chords.
     config: Config settings dictionary.
@@ -19,6 +19,8 @@ def sendToChords(config: dict, short_name: str, timestamp: int, value: float):
     """
     chords_record = {}
     chords_record["inst_id"] = config["instrument_id"]
+    if chords_inst_override:
+        chords_record["inst_id"] = chords_inst_override
     chords_record["api_email"] = config["api_email"]
     chords_record["api_key"] = config["api_key"]
     chords_record["vars"] = {}
@@ -46,9 +48,12 @@ def handleRtlData(config: dict, data: dict):
         logging.warning("No smart sensors defined, not handling RTL data.")
         return
 
-    # Check if model exists in data
+    # Check if model and id exists in data
     if "model" not in data:
         logging.error("No model defined in RTL data.")
+        return
+    if "id" not in data:
+        logging.error("No id defined in RTL data.")
         return
 
     # Get timestamp
@@ -65,22 +70,23 @@ def handleRtlData(config: dict, data: dict):
     logging.info(f"Timestamp is: {timestamp}")
 
     # Check each sensor and handle all variables that apply to this data
+    logging.debug(f"Scanning for sensor {data['model']}:{data['id']}")
     for sensor in sensors:
         if "model" not in sensor:
             logging.warning(f"No model defined for sensor {sensor}")
             continue
         if sensor["model"] != data["model"]:
-            logging.debug(
-                f'Sensor model {sensor["model"]} does not match data model {data["model"]}')
+            #logging.debug(
+            #    f'Sensor model {sensor["model"]} does not match data model {data["model"]}')
             continue
         if "id" not in sensor:
             logging.warning(f"No id defined for sensor {sensor}")
             continue
         if sensor["id"] != data["id"]:
-            logging.debug(
-                f'Sensor id {sensor["id"]} does not match data id {data["id"]}')
+            #logging.debug(
+            #    f'Sensor id {sensor["id"]} does not match data id {data["id"]}')
             continue
-        logging.info("Found matching RTL model!")
+        logging.info(f"* Found match for sensor {data['model']}:{data['id']}!")
         if "variables" not in sensor:
             logging.warning(f"No variables to handle for sensor {sensor}")
             continue
@@ -103,8 +109,9 @@ def handleRtlData(config: dict, data: dict):
             value = data[rtl_name]
             logging.info(
                 f"Found matching data for {rtl_name} with value {value}")
-            sendToChords(config, chords_short_name, timestamp, value)
-
+            # if an override has been specified for the instrument id, use it.
+            chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
+            sendToChords(config, chords_short_name, timestamp, value, chords_inst_override)
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     """
