@@ -7,7 +7,7 @@
         {
             "model": "ERT-SCM",
             "id": 12345,
-            "chords_inst_id": 11111, # optional
+            "chords_inst_id": 11111,
             "variables": [
                 {
                     "rtl_name": "consumption_data",
