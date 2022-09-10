@@ -8,6 +8,9 @@ import io
 import datetime
 import sys
 
+# Save the previous trtl_data, so that we can discard succesive duplicate
+# messages, a common situation with these sensors (especially the Ambient Wx ones).
+previous_rtl_data = {}
 
 def sendToChords(config: dict, short_name: str, timestamp: int, value: float, chords_inst_override=None):
     """
@@ -119,12 +122,18 @@ def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     config: Config settings dictionary.
     io_stream: The io stream to read json lines from an forward data from.
     """
+    global previous_rtl_data
+
     for line in io_stream:
         logging.info(f"RTL line is: {line}")
         try:
             data = json.loads(line)
             logging.info(f"RTL data is {data}")
-            handleRtlData(config, data)
+            if data != previous_rtl_data:
+                handleRtlData(config, data)
+            else:
+                logging.debug('* Discarding duplicate msg')
+            previous_rtl_data = data
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse RTL line: {e}")
 
