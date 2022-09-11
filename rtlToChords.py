@@ -51,11 +51,8 @@ def handleRtlData(config: dict, data: dict):
         return
 
     # Check if model and id exists in data
-    if "model" not in data:
-        logging.debug("No model defined in RTL data.")
-        return
-    if "id" not in data:
-        logging.debug("No id defined in RTL data.")
+    if "model" not in data or "id" not in data:
+        logging.debug(f"* Missing model or id for {data}")
         return
 
     # Get timestamp
@@ -74,36 +71,20 @@ def handleRtlData(config: dict, data: dict):
     # Check each sensor and handle all variables that apply to this data
     logging.debug(f"Scanning for sensor {data['model']}:{data['id']}")
     for sensor in sensors:
-        if "model" not in sensor:
-            logging.warning(f"No model defined for sensor {sensor}")
-            continue
         if sensor["model"] != data["model"]:
             #logging.debug(
             #    f'Sensor model {sensor["model"]} does not match data model {data["model"]}')
-            continue
-        if "id" not in sensor:
-            logging.warning(f"No id defined for sensor {sensor}")
             continue
         if sensor["id"] != data["id"]:
             #logging.debug(
             #    f'Sensor id {sensor["id"]} does not match data id {data["id"]}')
             continue
         logging.info(f"* Found match for sensor {data['model']}:{data['id']}!")
-        if "variables" not in sensor:
-            logging.warning(f"No variables to handle for sensor {sensor}")
-            continue
 
-        # Handle each variable
+        # add each variable:value to a dictionary
         vars = {}
         for variable in sensor["variables"]:
-            if "chords_short_name" not in variable:
-                logging.warning(
-                    f"No chords_short_name defined for variable {variable}")
-                continue
             chords_short_name = variable["chords_short_name"]
-            if "rtl_name" not in variable:
-                logging.warning(f"No rtl_name defined for variable {variable}")
-                continue
             if variable["rtl_name"] not in data:
                 logging.warning(
                     f'{variable["rtl_name"]} does not exist in data: {data}')
@@ -113,11 +94,11 @@ def handleRtlData(config: dict, data: dict):
             vars[chords_short_name] = data[rtl_name]
             logging.info(
                 f"Found matching data for {rtl_name} with value {value}")
-            # if an override has been specified for the instrument id, use it.
-            chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
-        if len(vars):
-            sendToChords(config, timestamp, vars, chords_inst_override)
 
+        # we found matching variables, send them to chords
+        if len(vars):
+            chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
+            sendToChords(config, timestamp, vars, chords_inst_override)
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     """
@@ -157,6 +138,27 @@ def forwardRtlData(config: dict):
     # Read all lines from RTL
     forwardFromStream(config, rtl_process.stdout)
 
+def validate_config(config: {}) -> None:
+    ''' Will exit(1) if the configuration is not up to snuff '''
+
+    if "smart_sensors" not in config:
+        print("Configuration does not contain a sensors section.")
+        sys.exit(1)
+    if len(config["smart_sensors"]) == 0:
+        print("No smart sensors defined.")
+        sys.exit(1)
+    
+    for sensor in config["smart_sensors"]:
+        if ("model" not in sensor) or ("id" not in sensor) or ("variables" not in sensor):
+            print("Sensor configurations must contain 'model', 'id' and 'variables' definitions.")
+            sys.exit(1)
+            if variables not in sensor:
+                print(f"Variables must exist for all sensors.")
+                sys.exit(1)
+            for variable in sensor["variables"]:
+                if ("chords_short_name" not in sensor ) or ("rtl_name" not in variable):
+                    print("Variable definitions must contain 'chords_short_name' and 'rtl_name'.")
+                    sys.exit(1)
 
 def main():
 
@@ -182,6 +184,7 @@ def main():
     # Load configuration
     logging.info(f"Starting RTL to Chords with {args.config}")
     config = json.loads(open(args.config).read())
+    validate_config(config)
 
     # Startup chords sender
     tochords.startSender()
