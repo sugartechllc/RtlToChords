@@ -40,16 +40,7 @@ def handleRtlData(config: dict, data: dict):
     config: Config setting dictionary.
     data: The json data to handle.
     """
-
-    # Get list of sensors to parse
-    if "smart_sensors" not in config:
-        logging.warning("No smart sensors defined, not handling RTL data.")
-        return
-    sensors = config["smart_sensors"]
-    if len(sensors) == 0:
-        logging.warning("No smart sensors defined, not handling RTL data.")
-        return
-
+    
     # Check if model and id exists in data
     if "model" not in data or "id" not in data:
         logging.debug(f"* Missing model or id for {data}")
@@ -66,22 +57,17 @@ def handleRtlData(config: dict, data: dict):
                 f'Failed to parse timestamp {data["time"]}, using current time')
     else:
         logging.warning("No timestamp in data, using current time")
-    logging.info(f"Timestamp is: {timestamp}")
+    logging.debug(f"Timestamp is: {timestamp}")
 
     # Check each sensor and handle all variables that apply to this data
     logging.debug(f"Scanning for sensor {data['model']}:{data['id']}")
-    for sensor in sensors:
-        if sensor["model"] != data["model"]:
-            #logging.debug(
-            #    f'Sensor model {sensor["model"]} does not match data model {data["model"]}')
-            continue
-        if sensor["id"] != data["id"]:
-            #logging.debug(
-            #    f'Sensor id {sensor["id"]} does not match data id {data["id"]}')
-            continue
-        logging.info(f"* Found match for sensor {data['model']}:{data['id']}!")
+    matched_sensor = False
+    for sensor in config["smart_sensors"]:
+        if (sensor["model"] != data["model"]) or (sensor["id"] != data["id"]):
+            continue 
 
-        # add each variable:value to a dictionary
+        logging.debug(f"* Found match for sensor {data['model']}:{data['id']}")
+        matched_sensor = True
         vars = {}
         for variable in sensor["variables"]:
             chords_short_name = variable["chords_short_name"]
@@ -92,13 +78,17 @@ def handleRtlData(config: dict, data: dict):
             rtl_name = variable["rtl_name"]
             value = data[rtl_name]
             vars[chords_short_name] = data[rtl_name]
-            logging.info(
+            logging.debug(
                 f"Found matching data for {rtl_name} with value {value}")
-
-        # we found matching variables, send them to chords
         if len(vars):
+            # we found matching variables, send them to chords
             chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
             sendToChords(config, timestamp, vars, chords_inst_override)
+        break
+    
+    if not matched_sensor:
+        logging.debug(f"* No match for sensor {data['model']}:{data['id']}")
+
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     """
@@ -112,7 +102,7 @@ def forwardFromStream(config: dict, io_stream: io.TextIOBase):
         logging.info(f"RTL line is: {line}")
         try:
             data = json.loads(line)
-            logging.info(f"RTL data is {data}")
+            logging.debug(f"RTL data is {data}")
             if data != previous_rtl_data:
                 handleRtlData(config, data)
             else:
