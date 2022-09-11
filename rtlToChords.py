@@ -29,7 +29,7 @@ def sendToChords(config: dict, timestamp: int, vars: {}, chords_inst_override=No
     chords_record["vars"]["at"] = int(timestamp)
     chords_record["vars"].update(vars)
     uri = tochords.buildURI(config["chords_host"], chords_record)
-    logging.info(f"Submitting: {uri}")
+    logging.debug(f"Submitting: {uri}")
     max_queue_length = 10*60*24
     tochords.submitURI(uri, max_queue_length)
 
