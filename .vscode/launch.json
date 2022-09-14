@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "rtltochords",
+            "type": "python",
+            "request": "launch",
+            "program": "rtlToChords.py",
+            "args": ["-c", "../mtn_king_rtl_to_chords.json"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}
