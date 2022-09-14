@@ -2,11 +2,13 @@
     "chords_host": "wx.myhost.com",
     "api_email": "myemail@gmail.com",
     "api_key": "XXXXXXXXXXXXXXXXX",
-    "instrument_id": "12345",
     "smart_sensors": [
         {
-            "model": "ERT-SCM",
-            "id": 12345,
+            "matches": {
+                "model": "ERT-SCM",
+                "id": 12345
+            },
+            "enabled": true,
             "chords_inst_id": 11111,
             "variables": [
                 {
