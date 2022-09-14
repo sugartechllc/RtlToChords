@@ -12,7 +12,7 @@ import sys
 # messages, a common situation with these sensors (especially the Ambient Wx ones).
 previous_rtl_data = {}
 
-def sendToChords(config: dict, timestamp: int, vars: {}, chords_inst_override=None):
+def sendToChords(config: dict, timestamp: int, vars: dict, chords_inst_id):
     """
     Send a single value to chords.
     config: Config settings dictionary.
@@ -20,9 +20,7 @@ def sendToChords(config: dict, timestamp: int, vars: {}, chords_inst_override=No
     vars: a dictionary of chords_short_names:values
     """
     chords_record = {}
-    chords_record["inst_id"] = config["instrument_id"]
-    if chords_inst_override:
-        chords_record["inst_id"] = chords_inst_override
+    chords_record["inst_id"] = chords_inst_id
     chords_record["api_email"] = config["api_email"]
     chords_record["api_key"] = config["api_key"]
     chords_record["vars"] = {}
@@ -57,37 +55,35 @@ def handleRtlData(config: dict, data: dict):
                 f'Failed to parse timestamp {data["time"]}, using current time')
     else:
         logging.warning("No timestamp in data, using current time")
-    logging.debug(f"Timestamp is: {timestamp}")
 
     # Check each sensor and handle all variables that apply to this data
-    logging.debug(f"Scanning for sensor {data['model']}:{data['id']}")
     matched_sensor = False
     for sensor in config["smart_sensors"]:
-        if (sensor["model"] != data["model"]) or (sensor["id"] != data["id"]):
-            continue 
-
-        logging.debug(f"* Found match for sensor {data['model']}:{data['id']}")
-        matched_sensor = True
-        vars = {}
-        for variable in sensor["variables"]:
-            chords_short_name = variable["chords_short_name"]
-            if variable["rtl_name"] not in data:
-                logging.warning(
-                    f'{variable["rtl_name"]} does not exist in data: {data}')
-                continue
-            rtl_name = variable["rtl_name"]
-            value = data[rtl_name]
-            vars[chords_short_name] = data[rtl_name]
-            logging.debug(
-                f"Found matching data for {rtl_name} with value {value}")
-        if len(vars):
-            # we found matching variables, send them to chords
-            chords_inst_override = sensor["chords_inst_id"] if "chords_inst_id" in sensor else None
-            sendToChords(config, timestamp, vars, chords_inst_override)
-        break
-    
+        if sensor["enabled"]:
+            match_keys = list(sensor["matches"].keys())
+            # See if data contains all keys for this sensor
+            if all (key in data for key in match_keys): 
+                # See if the values match the required values. match_test 
+                # will b a list of bool, one for each match comparison.
+                match_test = [data[key] == sensor["matches"][key] for key in match_keys]
+                if all (x == True for x in match_test):
+                    logging.debug(f"* Found match for sensor {[data[key] for key in match_keys]}")
+                    matched_sensor = True
+                    vars = {}
+                    for variable in sensor["variables"]:
+                        chords_short_name = variable["chords_short_name"]
+                        rtl_name = variable["rtl_name"]
+                        if rtl_name in data:
+                            value = data[rtl_name]
+                            vars[chords_short_name] = value
+                            logging.debug(f"Found matching data for {rtl_name} with value {value}")
+                    if len(vars):
+                        # we found matching variables, send them to chords
+                        sendToChords(config, timestamp, vars, sensor["chords_inst_id"])
+                    break
     if not matched_sensor:
-        logging.debug(f"* No match for sensor {data['model']}:{data['id']}")
+        logging.debug(f"* No match for data {data}")
+
 
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
@@ -99,10 +95,10 @@ def forwardFromStream(config: dict, io_stream: io.TextIOBase):
     global previous_rtl_data
 
     for line in io_stream:
-        logging.info(f"RTL line is: {line}")
+        logging.info(f"Raw line is: {line}")
         try:
             data = json.loads(line)
-            logging.debug(f"RTL data is {data}")
+            logging.debug(f"Line data is {data}")
             if data != previous_rtl_data:
                 handleRtlData(config, data)
             else:
@@ -128,27 +124,26 @@ def forwardRtlData(config: dict):
     # Read all lines from RTL
     forwardFromStream(config, rtl_process.stdout)
 
-def validate_config(config: {}) -> None:
+def validateKeys(sectionName: str, config_dict: dict, required_keys: list) -> None:
+    '''Exit if the required keys are not found in the dictionary'''
+    
+    if not all (key in config_dict for key in required_keys):
+        print(f'{sectionName}s must contain {required_keys}')
+        print(f'Invalid {sectionName} has keys: {list(config_dict.keys())}')
+        sys.exit(1)
+
+def validateConfig(config: list) -> None:
     ''' Will exit(1) if the configuration is not up to snuff '''
 
-    if "smart_sensors" not in config:
-        print("Configuration does not contain a sensors section.")
-        sys.exit(1)
-    if len(config["smart_sensors"]) == 0:
-        print("No smart sensors defined.")
-        sys.exit(1)
-    
-    for sensor in config["smart_sensors"]:
-        if ("model" not in sensor) or ("id" not in sensor) or ("variables" not in sensor):
-            print("Sensor configurations must contain 'model', 'id' and 'variables' definitions.")
-            sys.exit(1)
-            if variables not in sensor:
-                print(f"Variables must exist for all sensors.")
-                sys.exit(1)
-            for variable in sensor["variables"]:
-                if ("chords_short_name" not in sensor ) or ("rtl_name" not in variable):
-                    print("Variable definitions must contain 'chords_short_name' and 'rtl_name'.")
-                    sys.exit(1)
+    config_keys = ["chords_host", "api_email", "api_key"]
+    sensor_keys = ["matches", "enabled", "chords_inst_id", "variables"]
+    variable_keys = ["rtl_name", "chords_short_name"]
+
+    validateKeys('configuration', config, config_keys)
+    for smart_sensor in config["smart_sensors"]:
+        validateKeys('smart_sensor', smart_sensor, sensor_keys)
+        for variable in smart_sensor["variables"]:
+            validateKeys('variable', variable, variable_keys)
 
 def main():
 
@@ -174,7 +169,7 @@ def main():
     # Load configuration
     logging.info(f"Starting RTL to Chords with {args.config}")
     config = json.loads(open(args.config).read())
-    validate_config(config)
+    validateConfig(config)
 
     # Startup chords sender
     tochords.startSender()
