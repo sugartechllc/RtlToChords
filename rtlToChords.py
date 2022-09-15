@@ -39,11 +39,6 @@ def handleRtlData(config: dict, data: dict):
     data: The json data to handle.
     """
     
-    # Check if model and id exists in data
-    if "model" not in data or "id" not in data:
-        logging.debug(f"* Missing model or id for {data}")
-        return
-
     # Get timestamp
     timestamp = time.time()
     if "time" in data:
