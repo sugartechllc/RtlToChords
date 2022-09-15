@@ -113,6 +113,7 @@ def forwardRtlData(config: dict):
     # Open RTL subprocess that prints any received data to stdout as json
     rtl_process = subprocess.Popen(["/usr/local/bin/rtl_433",
                                     "-f", "915000000",
+                                    "-M", "level",
                                     "-F", "json"],
                                    stdout=subprocess.PIPE)
 
