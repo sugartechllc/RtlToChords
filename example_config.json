@@ -9,7 +9,7 @@
                 "id": 12345
             },
             "enabled": true,
-            "chords_inst_id": 11111,
+            "chords_inst_id": "11111",
             "variables": [
                 {
                     "rtl_name": "consumption_data",
