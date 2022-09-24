@@ -8,7 +8,7 @@ import io
 import datetime
 import sys
 
-# Save the previous trtl_data, so that we can discard succesive duplicate
+# Save the previous rtl_data, so that we can discard successive duplicate
 # messages, a common situation with these sensors (especially the Ambient Wx ones).
 previous_rtl_data = {}
 
@@ -101,6 +101,7 @@ def forwardFromStream(config: dict, io_stream: io.TextIOBase):
             previous_rtl_data = data
         except json.JSONDecodeError as e:
             logging.error(f"Failed to parse RTL line: {e}")
+    logging.info("No more lines to forward.")
 
 
 def forwardRtlData(config: dict):
@@ -115,10 +116,16 @@ def forwardRtlData(config: dict):
                                     "-f", "915000000",
                                     "-M", "level",
                                     "-F", "json"],
-                                   stdout=subprocess.PIPE)
+                                    stdout=subprocess.PIPE)
 
     # Read all lines from RTL
     forwardFromStream(config, rtl_process.stdout)
+
+    # Check if process has died
+    while True:
+        if rtl_process.poll() != None:
+            raise Exception("RTL process exited.")
+        time.sleep(1)
 
 def validateKeys(sectionName: str, config_dict: dict, required_keys: list) -> None:
     '''Exit if the required keys are not found in the dictionary'''
@@ -172,13 +179,12 @@ def main():
 
     if args.file is None:
         # Forward RTL data indefinitely
-        while True:
-            try:
-                forwardRtlData(config)
-            except Exception as e:
-                logging.error("Something went wrong when forwarding RTL data.")
-                logging.exception(e)
-                time.sleep(1)
+        try:
+            forwardRtlData(config)
+        except Exception as e:
+            logging.error("Something went wrong when forwarding RTL data.")
+            logging.exception(e)
+            sys.exit(-1)
     else:
         # Read from file
         with open(args.file, "r") as f:
