@@ -16,6 +16,192 @@
                     "chords_short_name": "gas_consumption"
                 }
             ]
+        },
+        {
+            "matches": {
+                "model": "IDM",
+                "ERTSerialNumber": 21716025
+            },
+            "enabled": true,
+            "chords_inst_id": "15",
+            "variables": [
+                {
+                    "rtl_name": "LastConsumptionCount",
+                    "chords_short_name": "solar-kwh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 1
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx1-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx1-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 2
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx2-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx2-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 3
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx3-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx3-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 4
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx4-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx4-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 5
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx5-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx5-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 6
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx6-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx6-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 7
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx7-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx7-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "AmbientWeather-WH31E",
+                "channel": 8
+            },
+            "enabled": true,
+            "chords_inst_id": "16",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "ambwx8-tdry"
+                },
+                {
+                    "rtl_name": "humidity",
+                    "chords_short_name": "ambwx8-rh"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "LaCrosse-TX35DTHIT",
+                "id": 8
+            },
+            "enabled": false,
+            "chords_inst_id": "17",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "tx35-8-tdry"
+                }
+            ]
+        },
+        {
+            "matches": {
+                "model": "LaCrosse-TX29IT",
+                "id": 8
+            },
+            "enabled": false,
+            "chords_inst_id": "17",
+            "variables": [
+                {
+                    "rtl_name": "temperature_C",
+                    "chords_short_name": "tx29-8-tdry"
+                }
+            ]
         }
     ]
 }
