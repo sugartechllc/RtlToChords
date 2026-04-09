@@ -12,6 +12,7 @@ import sys
 # messages, a common situation with these sensors (especially the Ambient Wx ones).
 previous_rtl_data = {}
 
+
 def sendToChords(config: dict, timestamp: int, vars: dict, chords_inst_id):
     """
     Send a single value to chords.
@@ -38,7 +39,7 @@ def handleRtlData(config: dict, data: dict):
     config: Config setting dictionary.
     data: The json data to handle.
     """
-    
+
     # Get timestamp
     timestamp = time.time()
     if "time" in data:
@@ -57,12 +58,14 @@ def handleRtlData(config: dict, data: dict):
         if sensor["enabled"]:
             match_keys = list(sensor["matches"].keys())
             # See if data contains all keys for this sensor
-            if all (key in data for key in match_keys): 
-                # See if the values match the required values. match_test 
+            if all(key in data for key in match_keys):
+                # See if the values match the required values. match_test
                 # will b a list of bool, one for each match comparison.
-                match_test = [data[key] == sensor["matches"][key] for key in match_keys]
-                if all (x == True for x in match_test):
-                    logging.debug(f"* Found match for sensor {[data[key] for key in match_keys]}")
+                match_test = [data[key] == sensor["matches"][key]
+                              for key in match_keys]
+                if all(x == True for x in match_test):
+                    logging.debug(
+                        f"* Found match for sensor {[data[key] for key in match_keys]}")
                     matched_sensor = True
                     vars = {}
                     for variable in sensor["variables"]:
@@ -71,14 +74,15 @@ def handleRtlData(config: dict, data: dict):
                         if rtl_name in data:
                             value = data[rtl_name]
                             vars[chords_short_name] = value
-                            logging.debug(f"Found matching data for {rtl_name} with value {value}")
+                            logging.debug(
+                                f"Found matching data for {rtl_name} with value {value}")
                     if len(vars):
                         # we found matching variables, send them to chords
-                        sendToChords(config, timestamp, vars, sensor["chords_inst_id"])
+                        sendToChords(config, timestamp, vars,
+                                     sensor["chords_inst_id"])
                     break
     if not matched_sensor:
         logging.debug(f"* No match for data {data}")
-
 
 
 def forwardFromStream(config: dict, io_stream: io.TextIOBase):
@@ -111,12 +115,25 @@ def forwardRtlData(config: dict):
     config: Config settings dictionary.
     """
 
+    # Reset USB device
+    logging.info("Resetting USB device.")
+    usb_reset_process = subprocess.Popen(["/usr/sbin/usb_modeswitch",
+                                          "-v", "0x0bda",
+                                          "-p", "0x2838",
+                                          "–reset-usb",
+                                          "-s", "60"],
+                                         stdout=subprocess.PIPE)
+    for line in usb_reset_process.stdout:
+        logging.info(line.decode("utf-8"))
+    usb_reset_process.wait()
+    logging.info(f"USB reset exited with code {usb_reset_process.returncode}")
+
     # Open RTL subprocess that prints any received data to stdout as json
     rtl_process = subprocess.Popen(["/usr/local/bin/rtl_433",
                                     "-f", "915000000",
                                     "-M", "level",
                                     "-F", "json"],
-                                    stdout=subprocess.PIPE)
+                                   stdout=subprocess.PIPE)
 
     # Read all lines from RTL
     forwardFromStream(config, rtl_process.stdout)
@@ -127,13 +144,15 @@ def forwardRtlData(config: dict):
             raise Exception("RTL process exited.")
         time.sleep(1)
 
+
 def validateKeys(sectionName: str, config_dict: dict, required_keys: list) -> None:
     '''Exit if the required keys are not found in the dictionary'''
-    
-    if not all (key in config_dict for key in required_keys):
+
+    if not all(key in config_dict for key in required_keys):
         print(f'{sectionName}s must contain {required_keys}')
         print(f'Invalid {sectionName} has keys: {list(config_dict.keys())}')
         sys.exit(1)
+
 
 def validateConfig(config: list) -> None:
     ''' Will exit(1) if the configuration is not up to snuff '''
@@ -147,6 +166,7 @@ def validateConfig(config: list) -> None:
         validateKeys('smart_sensor', smart_sensor, sensor_keys)
         for variable in smart_sensor["variables"]:
             validateKeys('variable', variable, variable_keys)
+
 
 def main():
 
